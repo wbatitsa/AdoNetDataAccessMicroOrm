@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Dapper;
+using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace AdoNetDataAccessMicroOrm
@@ -7,28 +8,20 @@ namespace AdoNetDataAccessMicroOrm
     {
         static void Main(string[] args)
         {
-            var listOfProduct = new List<Product>();
-
             var connectionString = "Server=(localdb)\\MSSQLLocalDb;Database=Northwind";
             var connection = new SqlConnection(connectionString);
-            var command = connection.CreateCommand();
-            command.CommandText = "SELECT * FROM Products";
 
-            connection.Open();
+            var param = new DynamicParameters(new
+            {
+                ProductName = "Banana",
+                UnitPrice = 50.00
+            });
+            param.Add("@ProductID", dbType: DbType.Int32, direction: ParameterDirection.Output);
+            connection.Execute("ProductsInsert", param, commandType: CommandType.StoredProcedure);
 
-            var dataReader = command.ExecuteReader();
-            while (dataReader.Read()) { 
-                var product = new Product();
-                product.ProductID = (int)dataReader["ProductID"];
-                product.ProductName = (string)dataReader["ProductName"];
-                listOfProduct.Add(product);
-            }
-            connection.Close();
+            int insertedId = param.Get<int>("@ProductID");
 
-
-            foreach (var product in listOfProduct) {
-                Console.WriteLine(product.ProductName);
-            }
+            Console.WriteLine("Inserted id: " + insertedId);
         }
     }
 
